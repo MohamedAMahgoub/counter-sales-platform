@@ -5,6 +5,7 @@ import { formatEgpAmount } from '../../data/mockData'
  * @param {object} props
  * @param {number} props.immediateTotal
  * @param {number} props.backorderTotal
+ * @param {number} props.unavailableTotal
  * @param {number} props.subtotal
  * @param {number} props.vatAmount
  * @param {number} props.grandTotal
@@ -20,6 +21,7 @@ import { formatEgpAmount } from '../../data/mockData'
  * @param {boolean} props.needsDiscountOverride
  * @param {() => void} props.onMainAction
  * @param {boolean} props.mainActionDisabled
+ * @param {boolean} props.hasUnresolvedLines
  * @param {'idle'|'pending_override'|'pending_finance'} props.pageState
  * @param {() => void} props.onRequestOverride
  * @param {() => void} props.onCancelTransaction
@@ -29,6 +31,7 @@ import { formatEgpAmount } from '../../data/mockData'
 export default function OrderSummaryBar({
   immediateTotal,
   backorderTotal,
+  unavailableTotal = 0,
   subtotal,
   vatAmount,
   grandTotal,
@@ -44,6 +47,7 @@ export default function OrderSummaryBar({
   needsDiscountOverride,
   onMainAction,
   mainActionDisabled,
+  hasUnresolvedLines = false,
   pageState = 'idle',
   onRequestOverride,
   onCancelTransaction,
@@ -52,9 +56,8 @@ export default function OrderSummaryBar({
 }) {
   const isPending = pageState !== 'idle'
 
-  const selectBorderClass = creditBlockedActive && !isPending
-    ? 'border-[#E74C3C]'
-    : 'border-border'
+  const selectBorderClass =
+    creditBlockedActive && !isPending ? 'border-[#E74C3C]' : 'border-border'
 
   const mainLabel = needsDiscountOverride
     ? labels.requestOverride
@@ -74,14 +77,29 @@ export default function OrderSummaryBar({
             {formatEgpAmount(immediateTotal)}
           </span>
         </div>
-        <div className={rowClass}>
-          <span className="text-left text-label text-text-secondary">
-            {labels.backorderTotal}:
-          </span>
-          <span className="text-right text-body font-medium text-[#F39C12]">
-            {formatEgpAmount(backorderTotal)}
-          </span>
-        </div>
+
+        {backorderTotal > 0 && (
+          <div className={rowClass}>
+            <span className="text-left text-label text-text-secondary">
+              {labels.backorderTotal}:
+            </span>
+            <span className="text-right text-body font-medium text-[#F39C12]">
+              {formatEgpAmount(backorderTotal)}
+            </span>
+          </div>
+        )}
+
+        {unavailableTotal > 0 && (
+          <div className={rowClass}>
+            <span className="text-left text-label text-text-secondary">
+              {labels.unavailableTotal}:
+            </span>
+            <span className="text-right text-body font-medium text-[#E74C3C]">
+              {formatEgpAmount(unavailableTotal)}
+            </span>
+          </div>
+        )}
+
         <div className={rowClass}>
           <span className="text-left text-label text-text-secondary">
             {labels.subtotal}:
@@ -109,7 +127,7 @@ export default function OrderSummaryBar({
         </div>
       </div>
 
-      {/* Payment method — dropdown when idle, frozen label when pending */}
+      {/* Payment method */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-1">
         <p className="text-label font-medium text-text-secondary">
           {labels.paymentMethod}
@@ -136,14 +154,14 @@ export default function OrderSummaryBar({
           </select>
         )}
 
-        {creditBlockedActive && !isPending ? (
+        {creditBlockedActive && !isPending && (
           <p className="text-label text-[#E74C3C]">{creditBlockedWarningText}</p>
-        ) : null}
-        {showPaymentOptionalWarning && !paymentValue && !isPending ? (
+        )}
+        {showPaymentOptionalWarning && !paymentValue && !isPending && (
           <p className="text-label text-status-backorder">
             {paymentOptionalWarningText}
           </p>
-        ) : null}
+        )}
       </div>
 
       {/* Action buttons */}
@@ -168,11 +186,18 @@ export default function OrderSummaryBar({
             />
           </>
         ) : (
-          <ActionButton
-            variant={mainActionDisabled ? 'disabled' : 'primary'}
-            label={mainLabel}
-            onClick={mainActionDisabled ? undefined : onMainAction}
-          />
+          <>
+            <ActionButton
+              variant={mainActionDisabled ? 'disabled' : 'primary'}
+              label={mainLabel}
+              onClick={mainActionDisabled ? undefined : onMainAction}
+            />
+            {hasUnresolvedLines && !mainActionDisabled && (
+              <p className="max-w-[180px] text-center text-badge text-[#E74C3C]">
+                {labels.outOfStockWarning}
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -10,6 +10,7 @@ import { formatEgpAmount } from '../../data/mockData'
  * @param {() => void} props.onCopyToOrder
  * @param {() => void} props.onSaveDraft
  * @param {boolean} props.copyToOrderDisabled
+ * @param {number} [props.unavailableLinesCount]
  */
 export default function QuotationSummaryBar({
   subtotal,
@@ -19,6 +20,7 @@ export default function QuotationSummaryBar({
   onCopyToOrder,
   onSaveDraft,
   copyToOrderDisabled,
+  unavailableLinesCount = 0,
 }) {
   const rowClass = 'flex w-full min-w-[200px] max-w-xs justify-between gap-6'
 
@@ -44,6 +46,13 @@ export default function QuotationSummaryBar({
             {formatEgpAmount(grandTotal)}
           </span>
         </div>
+
+        {unavailableLinesCount > 0 && (
+          <p className="mt-1 max-w-xs text-label text-[#F39C12]">
+            {unavailableLinesCount} {unavailableLinesCount === 1 ? 'line' : 'lines'}{' '}
+            {labels.unavailableNoteSuffix}
+          </p>
+        )}
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-3 self-center">

@@ -20,10 +20,11 @@ function exceedsCeiling(pct, ceiling) {
 
 /**
  * @param {object} props
- * @param {object} props.line   quotation line with discount, discountValue
+ * @param {object} props.line   quotation line with discount, discountValue, availability, stockQty, linkedOrderBackorder
  * @param {number} props.discountCeiling
  * @param {string} props.discountCeilingWarningText
  * @param {object} props.consumptionCopy
+ * @param {object} props.availabilityCopy  quotationAvailabilityCopy from mockData
  * @param {(n: number) => string} props.formatEgp
  * @param {number} props.lineTotal
  * @param {string} props.deleteAriaLabel
@@ -35,6 +36,7 @@ export default function QuotationLineItem({
   discountCeiling,
   discountCeilingWarningText,
   consumptionCopy,
+  availabilityCopy,
   formatEgp,
   lineTotal,
   deleteAriaLabel,
@@ -43,6 +45,8 @@ export default function QuotationLineItem({
 }) {
   const isFullyConsumed = line.qtyConsumed >= line.qtyQuoted
   const qtyRemaining = Math.max(0, line.qtyQuoted - line.qtyConsumed)
+  const isUnavailable = line.availability === 'unavailable'
+  const hasLinkedBackorder = isUnavailable && line.linkedOrderBackorder != null
 
   const pctFocused = useRef(false)
   const valFocused = useRef(false)
@@ -87,10 +91,73 @@ export default function QuotationLineItem({
     valFocused.current = false
   }
 
-  const rowBg = isFullyConsumed ? 'bg-[#F8F9FA] opacity-60' : 'bg-surface-card'
+  // Row tint: fully-consumed → gray+opacity, linked backorder → light amber, else white
+  const rowBg = isFullyConsumed
+    ? 'bg-[#F8F9FA] opacity-60'
+    : hasLinkedBackorder
+      ? 'bg-[#FFFBF0]'
+      : 'bg-surface-card'
+
   const pctInputClass = ceilingError
     ? 'border-[#E74C3C] focus:border-[#E74C3C] focus:ring-[#E74C3C]'
     : 'border-border focus:border-border-focus focus:ring-border-focus'
+
+  // ── Availability cell (read-only) ──────────────────────────────────────────
+  let availabilityCell
+
+  if (!isUnavailable) {
+    // State 1 — Available
+    availabilityCell = (
+      <span className="inline-flex rounded-full bg-[#27AE60] px-3 py-1 text-badge font-medium text-white">
+        {availabilityCopy.availableLabel} · {line.stockQty} {availabilityCopy.inStock}
+      </span>
+    )
+  } else if (!hasLinkedBackorder) {
+    // State 2 — Out of stock, no linked order
+    availabilityCell = (
+      <div className="flex flex-col gap-1">
+        <span className="inline-flex rounded-full bg-[#E74C3C] px-3 py-1 text-badge font-medium text-white">
+          {availabilityCopy.unavailableLabel}
+        </span>
+        <p className="text-[11px] text-text-secondary">
+          {availabilityCopy.notAvailableText}
+        </p>
+      </div>
+    )
+  } else {
+    // State 3 — Unavailable with linked backorder
+    const bo = line.linkedOrderBackorder
+    availabilityCell = (
+      <div className="flex flex-col gap-1">
+        <span className="inline-flex rounded-full bg-[#F39C12] px-3 py-1 text-badge font-medium text-white">
+          {availabilityCopy.backorderedLabel}
+        </span>
+        <div className="flex flex-col gap-0.5 pl-0.5">
+          <span className="font-mono text-[11px] font-semibold text-brand-navy">
+            {bo.orderId}
+          </span>
+          <span className="text-[11px] text-text-secondary">
+            {bo.sourceBranch} · {availabilityCopy.etaPrefix} {bo.eta}
+          </span>
+          <span className="text-[11px] text-text-secondary">
+            {availabilityCopy.qtyLabel} {bo.qty} {availabilityCopy.onBackorderText}
+          </span>
+          <button
+            type="button"
+            className="mt-0.5 w-fit text-left text-[11px] font-medium text-brand-navy hover:underline focus-visible:outline-none"
+          >
+            {availabilityCopy.viewOrderLabel}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Amber note for consumption bar when this line has a linked backorder
+  const backorderNote =
+    hasLinkedBackorder && !isFullyConsumed
+      ? `${line.linkedOrderBackorder.qty} ${consumptionCopy.backorderNoteSuffix}`
+      : null
 
   return (
     <tr className={`border-b border-border ${rowBg}`}>
@@ -108,11 +175,14 @@ export default function QuotationLineItem({
           qtyQuoted={line.qtyQuoted}
           qtyConsumed={line.qtyConsumed}
           copy={consumptionCopy}
+          backorderNote={backorderNote}
         />
       </td>
       <td className="whitespace-nowrap px-4 py-3 align-top text-body text-text-primary">
         {formatEgp(line.unitPrice)}
       </td>
+      {/* Availability — read-only */}
+      <td className="px-4 py-3 align-top">{availabilityCell}</td>
       <td className="px-4 py-3 align-top">
         <input
           type="text"

@@ -166,6 +166,16 @@ export const parts = [
     stockQty: 6,
     discount: 0,
   },
+  {
+    id: 'PT-003',
+    partNumber: '48520-09360',
+    description: 'Front Shock Absorber LH — Hilux',
+    qty: 2,
+    unitPrice: 780.0,
+    availability: 'unavailable',
+    stockQty: 0,
+    discount: 0,
+  },
 ]
 
 export const activeSaleOrder = {
@@ -174,6 +184,14 @@ export const activeSaleOrder = {
   status: 'open',
   paymentMethod: null,
 }
+
+export const branches = [
+  { id: 'BR-001', name: 'Cairo East Branch', current: true },
+  { id: 'BR-002', name: 'Cairo Central Branch' },
+  { id: 'BR-003', name: 'Cairo West Branch' },
+  { id: 'BR-004', name: 'Alexandria Branch' },
+  { id: 'BR-005', name: 'Giza Branch' },
+]
 
 export const pendingApprovals = [
   {
@@ -619,8 +637,8 @@ export const quotations = [
     id: 'QT-2025-0089',
     status: 'open',
     validityDate: '2026-05-02',
-    totalUnits: 18,
-    consumedUnits: 9,
+    totalUnits: 24,
+    consumedUnits: 11,
     lines: [
       {
         id: 'QTL-001',
@@ -630,6 +648,9 @@ export const quotations = [
         qtyConsumed: 4,
         unitPrice: 145.0,
         discount: 2,
+        availability: 'available',
+        stockQty: 14,
+        linkedOrderBackorder: null,
       },
       {
         id: 'QTL-002',
@@ -639,6 +660,27 @@ export const quotations = [
         qtyConsumed: 5,
         unitPrice: 220.0,
         discount: 0,
+        availability: 'available',
+        stockQty: 6,
+        linkedOrderBackorder: null,
+      },
+      {
+        id: 'QTL-003',
+        partNumber: '48520-09360',
+        description: 'Front Shock Absorber LH — Hilux',
+        qtyQuoted: 6,
+        qtyConsumed: 2,
+        unitPrice: 780.0,
+        discount: 0,
+        availability: 'unavailable',
+        stockQty: 0,
+        linkedOrderBackorder: {
+          orderId: 'SO-2025-1203',
+          sourceBranch: 'Cairo Central Branch',
+          eta: '2 days',
+          qty: 2,
+          status: 'backordered',
+        },
       },
     ],
   },
@@ -741,9 +783,13 @@ export const partsTableColumnLabels = {
 export const availabilityCopy = {
   availableLabel: 'Available',
   inStock: 'in stock',
+  unavailableLabel: 'Out of Stock',
   backorderedLabel: 'Backordered',
   etaPrefix: 'ETA',
   daysWord: 'days',
+  backorderLinkLabel: 'Backorder →',
+  branchSelectPlaceholder: 'Select source branch',
+  branchSelectError: 'Select a source branch to confirm backorder',
 }
 
 export const addPartRowPlaceholder =
@@ -784,6 +830,7 @@ export const pendingFinanceBannerMessage =
 export const orderSummaryLabels = {
   immediateTotal: 'Immediate lines',
   backorderTotal: 'Backorder lines',
+  unavailableTotal: 'Unavailable',
   subtotal: 'Subtotal',
   vat: 'VAT (14%)',
   total: 'Total',
@@ -792,6 +839,8 @@ export const orderSummaryLabels = {
   requestOverride: 'Request Override',
   cancelTransaction: 'Cancel Transaction',
   withdrawRequest: 'Withdraw Request',
+  outOfStockWarning:
+    'Some lines are out of stock — backorder or remove before confirming',
 }
 
 export const saleConfirmationLabels = {
@@ -800,6 +849,7 @@ export const saleConfirmationLabels = {
   transactionIdLabel: 'Transaction',
   erpDocLabel: 'ERP Doc',
   statusClosed: 'Closed',
+  statusPartiallyFulfilled: 'Partially fulfilled',
   statusPending: 'Open — Awaiting Payment',
   paymentReceivedPrefix: 'Payment received via',
   paymentConfirmedText: 'Payment confirmed',
@@ -807,6 +857,10 @@ export const saleConfirmationLabels = {
   markPaymentReceived: 'Mark Payment Received',
   newTransaction: 'New Transaction →',
   printReceipt: 'Print Receipt',
+  immediateDeliveryTitle: 'Immediate delivery',
+  backorderSectionTitle: 'Backorder',
+  shippedFromPrefix: 'Shipped from',
+  transferRequestPrefix: 'Transfer request sent to',
 }
 
 export const copyFromBannerLabels = {
@@ -825,6 +879,7 @@ export const quotationColumnLabels = {
   qtyQuoted: 'Qty quoted',
   consumption: 'CONSUMPTION',
   unitPrice: 'Unit price',
+  availability: 'AVAILABILITY',
   discountPercent: 'DISC. %',
   discountValue: 'DISC. VAL',
   lineTotal: 'Line total',
@@ -856,6 +911,7 @@ export const consumptionBarCopy = {
   convertedSuffix: 'converted',
   fullyConsumedLabel: 'Fully consumed',
   fullyConsumedMessage: 'Fully converted',
+  backorderNoteSuffix: 'units on backorder — see linked order',
 }
 
 export const quotationSummaryLabels = {
@@ -864,6 +920,20 @@ export const quotationSummaryLabels = {
   total: 'Total',
   copyToOrder: 'Copy to order',
   saveDraft: 'Save as draft',
+  unavailableNoteSuffix:
+    'unavailable at current branch — backorder will be managed at order level',
+}
+
+export const quotationAvailabilityCopy = {
+  availableLabel: 'Available',
+  inStock: 'in stock',
+  unavailableLabel: 'Out of Stock',
+  notAvailableText: 'Not available at current branch',
+  backorderedLabel: 'Backordered',
+  etaPrefix: 'ETA',
+  qtyLabel: 'Qty:',
+  onBackorderText: 'on backorder',
+  viewOrderLabel: 'View order →',
 }
 
 export const deleteQuotationLineAriaLabel = 'Remove quotation line'

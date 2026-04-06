@@ -16,6 +16,10 @@ import PartLineItem from './PartLineItem'
  * @param {(part: object) => number} props.getLineTotal
  * @param {string} props.addPartPlaceholder
  * @param {boolean} [props.readOnly]
+ * @param {{ id: string, name: string }[]} [props.branches]
+ * @param {(id: string) => void} [props.onSetBackorder]
+ * @param {(id: string) => void} [props.onCancelBackorder]
+ * @param {(id: string, branchName: string) => void} [props.onSelectBranch]
  */
 export default function PartsTable({
   parts,
@@ -31,6 +35,10 @@ export default function PartsTable({
   getLineTotal,
   addPartPlaceholder,
   readOnly = false,
+  branches = [],
+  onSetBackorder = () => {},
+  onCancelBackorder = () => {},
+  onSelectBranch = () => {},
 }) {
   const colSpan = 9
 
@@ -76,12 +84,16 @@ export default function PartsTable({
               discountCeiling={discountCeiling}
               discountCeilingWarningText={discountCeilingWarningText}
               availabilityCopy={availabilityCopy}
+              branches={branches}
               formatEgp={formatEgp}
               lineTotal={getLineTotal(part)}
               deleteAriaLabel={deleteLineAriaLabel}
               onQtyChange={onQtyChange}
               onDiscountUpdate={onDiscountUpdate}
               onRemoveLine={onRemoveLine}
+              onSetBackorder={onSetBackorder}
+              onCancelBackorder={onCancelBackorder}
+              onSelectBranch={onSelectBranch}
               readOnly={readOnly}
             />
           ))}

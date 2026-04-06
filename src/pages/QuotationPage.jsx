@@ -18,6 +18,7 @@ import {
   navbarBrand,
   navbarLogoutAriaLabel,
   navbarTabs,
+  quotationAvailabilityCopy,
   quotationColumnLabels,
   quotationStatusLabelMap,
   quotationStatusVariantMap,
@@ -114,6 +115,11 @@ export default function QuotationPage() {
     [lines],
   )
 
+  const unavailableLinesCount = useMemo(
+    () => lines.filter((l) => l.availability === 'unavailable' && l.qtyConsumed < l.qtyQuoted).length,
+    [lines],
+  )
+
   const handleCopyToOrder = useCallback(() => {
     const activeLines = lines.filter((l) => l.qtyConsumed < l.qtyQuoted)
     const copiedLines = activeLines.map((l) => {
@@ -126,8 +132,8 @@ export default function QuotationPage() {
         description: l.description,
         qty: remainingQty,
         unitPrice: l.unitPrice,
-        availability: 'available',
-        stockQty: 99,
+        availability: l.availability ?? 'available',
+        stockQty: l.stockQty ?? 0,
         discount: l.discount,
         discountValue,
       }
@@ -185,6 +191,7 @@ export default function QuotationPage() {
             discountCeilingWarningText={discountCeilingInlineWarning}
             columnLabels={quotationColumnLabels}
             consumptionCopy={consumptionBarCopy}
+            availabilityCopy={quotationAvailabilityCopy}
             formatEgp={formatEgpAmount}
             deleteLineAriaLabel={deleteQuotationLineAriaLabel}
             onDiscountUpdate={onDiscountUpdate}
@@ -201,6 +208,7 @@ export default function QuotationPage() {
           onCopyToOrder={handleCopyToOrder}
           onSaveDraft={handleSaveDraft}
           copyToOrderDisabled={activeLinesCount === 0}
+          unavailableLinesCount={unavailableLinesCount}
         />
       </div>
     </div>

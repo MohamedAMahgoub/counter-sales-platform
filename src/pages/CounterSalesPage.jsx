@@ -12,6 +12,7 @@ import {
   addPartRowPlaceholder,
   availabilityCopy,
   blockedBannerMessage,
+  branches as allBranches,
   copyFromBannerLabels,
   creditSaleBlockedBadgeLabel,
   currentCustomer,
@@ -51,6 +52,11 @@ function initialDiscountValue(part) {
   return round2((part.discount / 100) * (part.qty * part.unitPrice))
 }
 
+// Branches available as backorder sources (all except the current branch)
+const sourceBranches = allBranches.filter((b) => !b.current)
+const currentBranchName =
+  allBranches.find((b) => b.current)?.name ?? 'Cairo East Branch'
+
 // ─── Confirmation screens ─────────────────────────────────────────────────────
 
 function GreenCheckCircle() {
@@ -74,33 +80,114 @@ function BlueClockCircle() {
   )
 }
 
-function SaleConfirmedScreen({ transactionId, erpDoc, paymentLabel, isPaymentConfirmed, labels, onNewTransaction }) {
+function SaleConfirmedScreen({
+  transactionId,
+  erpDoc,
+  paymentLabel,
+  isPaymentConfirmed,
+  lineItems,
+  labels,
+  onNewTransaction,
+}) {
+  const immediateLines = lineItems.filter((p) => p.availability === 'available')
+  const backorderLines = lineItems.filter(
+    (p) => p.availability === 'backorder' && p.sourceBranch,
+  )
+  const hasMixed = immediateLines.length > 0 && backorderLines.length > 0
+  const allBackorder = immediateLines.length === 0 && backorderLines.length > 0
+
+  const statusClass = hasMixed || allBackorder
+    ? 'bg-[#FFF3CD] text-[#856404]'
+    : 'bg-[#E8F5E9] text-[#1E8449]'
+  const statusLabel = hasMixed || allBackorder
+    ? labels.statusPartiallyFulfilled
+    : labels.statusClosed
+
+  // Unique source branches for the backorder footer
+  const uniqueBackorderBranches = [...new Set(backorderLines.map((l) => l.sourceBranch))]
+
   return (
-    <div className="flex flex-1 items-center justify-center bg-surface px-6">
-      <div className="w-full max-w-md rounded-card border border-border bg-surface-card p-10 text-center">
-        <GreenCheckCircle />
-        <h1 className="mt-5 text-amount font-bold text-text-primary">{labels.confirmedTitle}</h1>
-        <div className="mt-4 flex flex-col gap-0.5">
-          <span className="text-label text-text-secondary">
-            {labels.transactionIdLabel}:{' '}
-            <span className="font-semibold text-text-primary">{transactionId}</span>
-          </span>
-          <span className="text-label text-text-secondary">
-            {labels.erpDocLabel}:{' '}
-            <span className="font-semibold text-text-primary">{erpDoc}</span>
-          </span>
+    <div className="flex flex-1 items-start justify-center overflow-y-auto bg-surface px-6 py-8">
+      <div className="w-full max-w-lg rounded-card border border-border bg-surface-card p-8">
+        {/* Header */}
+        <div className="mb-6 text-center">
+          <GreenCheckCircle />
+          <h1 className="mt-5 text-amount font-bold text-text-primary">
+            {labels.confirmedTitle}
+          </h1>
+          <div className="mt-4 flex flex-col gap-0.5">
+            <span className="text-label text-text-secondary">
+              {labels.transactionIdLabel}:{' '}
+              <span className="font-semibold text-text-primary">{transactionId}</span>
+            </span>
+            <span className="text-label text-text-secondary">
+              {labels.erpDocLabel}:{' '}
+              <span className="font-semibold text-text-primary">{erpDoc}</span>
+            </span>
+          </div>
+          <div className="mt-3 flex justify-center">
+            <span className={`rounded-badge px-3 py-1 text-badge font-semibold ${statusClass}`}>
+              {statusLabel}
+            </span>
+          </div>
+          <p className="mt-3 text-body font-medium text-[#27AE60]">
+            {isPaymentConfirmed
+              ? labels.paymentConfirmedText
+              : `${labels.paymentReceivedPrefix} ${paymentLabel}`}
+          </p>
         </div>
-        <div className="mt-4 flex justify-center">
-          <span className="rounded-badge bg-[#E8F5E9] px-3 py-1 text-badge font-semibold text-[#1E8449]">
-            {labels.statusClosed}
-          </span>
-        </div>
-        <p className="mt-4 text-body font-medium text-[#27AE60]">
-          {isPaymentConfirmed
-            ? labels.paymentConfirmedText
-            : `${labels.paymentReceivedPrefix} ${paymentLabel}`}
-        </p>
-        <div className="mt-8 flex justify-center gap-3">
+
+        {/* Immediate delivery section */}
+        {immediateLines.length > 0 && (
+          <div className="mb-4 rounded-input border border-[#27AE60]/30 bg-[#E8F5E9] p-4">
+            <h3 className="mb-2 text-body font-semibold text-[#1B6B3A]">
+              {labels.immediateDeliveryTitle}
+            </h3>
+            <div className="flex flex-col gap-1.5">
+              {immediateLines.map((l) => (
+                <div key={l.id} className="flex items-center justify-between">
+                  <span className="text-label text-[#1B6B3A]">{l.description}</span>
+                  <span className="ml-4 shrink-0 text-label font-semibold text-[#1B6B3A]">
+                    {formatEgpAmount(lineTotalForPart(l))}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-label text-[#1B6B3A]">
+              {labels.shippedFromPrefix} {currentBranchName}
+            </p>
+          </div>
+        )}
+
+        {/* Backorder section */}
+        {backorderLines.length > 0 && (
+          <div className="mb-4 rounded-input border border-[#F39C12]/30 bg-[#FFFBF0] p-4">
+            <h3 className="mb-2 text-body font-semibold text-[#7D4E00]">
+              {labels.backorderSectionTitle}
+            </h3>
+            <div className="flex flex-col gap-1.5">
+              {backorderLines.map((l) => (
+                <div key={l.id} className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-label text-[#7D4E00]">{l.description}</span>
+                    <span className="ml-2 text-badge text-[#7D4E00]/70">· {l.sourceBranch}</span>
+                  </div>
+                  <span className="ml-4 shrink-0 text-label font-semibold text-[#7D4E00]">
+                    {formatEgpAmount(lineTotalForPart(l))}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {uniqueBackorderBranches.map((branch) => (
+              <p key={branch} className="mt-2 text-label text-[#7D4E00]">
+                {labels.transferRequestPrefix} {branch}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="mt-6 flex justify-center gap-3">
           <ActionButton variant="secondary" label={labels.printReceipt} onClick={() => {}} />
           <ActionButton variant="primary" label={labels.newTransaction} onClick={onNewTransaction} />
         </div>
@@ -109,7 +196,13 @@ function SaleConfirmedScreen({ transactionId, erpDoc, paymentLabel, isPaymentCon
   )
 }
 
-function FinancePendingScreen({ transactionId, erpDoc, labels, onMarkPaymentReceived, onNewTransaction }) {
+function FinancePendingScreen({
+  transactionId,
+  erpDoc,
+  labels,
+  onMarkPaymentReceived,
+  onNewTransaction,
+}) {
   return (
     <div className="flex flex-1 items-center justify-center bg-surface px-6">
       <div className="w-full max-w-md rounded-card border border-border bg-surface-card p-10 text-center">
@@ -171,12 +264,10 @@ export default function CounterSalesPage() {
   const { state } = useLocation()
   const navigate = useNavigate()
 
-  // Customer from LandingPage / Quotation copy / Navbar tab, or fallback
   const customer = state?.customer ?? currentCustomer
   const creditStatus = customer.creditStatus
 
   const [lineItems, setLineItems] = useState(() => {
-    // If coming from a quotation copy, use those lines
     if (state?.copiedLines) return state.copiedLines
     return partsSeed.map((p) => ({
       ...p,
@@ -189,7 +280,6 @@ export default function CounterSalesPage() {
   const [paymentMethod, setPaymentMethod] = useState('')
   const [showPaymentOptionalWarning, setShowPaymentOptionalWarning] = useState(false)
 
-  // Fix 5: isBlocked only when Credit is explicitly selected AND overdue balance exists
   const isCreditSaleBlocked =
     pageState === 'idle' &&
     paymentMethod === paymentCreditValue &&
@@ -197,25 +287,58 @@ export default function CounterSalesPage() {
 
   const getLineTotal = useCallback((part) => lineTotalForPart(part), [])
 
-  const { immediateTotal, backorderTotal, subtotal, vatAmount, grandTotal } =
-    useMemo(() => {
-      let immediate = 0
-      let backorder = 0
-      for (const part of lineItems) {
-        const lt = lineTotalForPart(part)
-        if (part.availability === 'backorder') backorder = round2(backorder + lt)
-        else immediate = round2(immediate + lt)
+  const {
+    immediateTotal,
+    backorderTotal,
+    unavailableTotal,
+    subtotal,
+    vatAmount,
+    grandTotal,
+  } = useMemo(() => {
+    let immediate = 0
+    let backorder = 0
+    let unavailable = 0
+    for (const part of lineItems) {
+      const lt = lineTotalForPart(part)
+      if (part.availability === 'available') {
+        immediate = round2(immediate + lt)
+      } else if (part.availability === 'backorder' && part.sourceBranch) {
+        backorder = round2(backorder + lt)
+      } else {
+        // unavailable OR backorder with no branch selected
+        unavailable = round2(unavailable + lt)
       }
-      const sub = round2(immediate + backorder)
-      const vat = round2(sub * 0.14)
-      const grand = round2(sub + vat)
-      return { immediateTotal: immediate, backorderTotal: backorder, subtotal: sub, vatAmount: vat, grandTotal: grand }
-    }, [lineItems])
+    }
+    const sub = round2(immediate + backorder + unavailable)
+    const vat = round2(sub * 0.14)
+    const grand = round2(sub + vat)
+    return {
+      immediateTotal: immediate,
+      backorderTotal: backorder,
+      unavailableTotal: unavailable,
+      subtotal: sub,
+      vatAmount: vat,
+      grandTotal: grand,
+    }
+  }, [lineItems])
 
   const anyLineExceedsCeiling = useMemo(
     () => lineItems.some((p) => round2(p.discount) > currentUser.discountCeiling),
     [lineItems],
   )
+
+  // True when any line is unavailable or backordered without a branch yet
+  const hasUnresolvedLines = useMemo(
+    () =>
+      lineItems.some(
+        (p) =>
+          p.availability === 'unavailable' ||
+          (p.availability === 'backorder' && !p.sourceBranch),
+      ),
+    [lineItems],
+  )
+
+  // ── Line item callbacks ────────────────────────────────────────────────────
 
   const onQtyChange = useCallback((id, qty) => {
     setLineItems((prev) =>
@@ -242,6 +365,37 @@ export default function CounterSalesPage() {
     setLineItems((prev) => prev.filter((p) => p.id !== id))
   }, [])
 
+  // Backorder state transitions
+  const onSetBackorder = useCallback((id) => {
+    setLineItems((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? { ...p, availability: 'backorder', sourceBranch: undefined }
+          : p,
+      ),
+    )
+  }, [])
+
+  const onCancelBackorder = useCallback((id) => {
+    setLineItems((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? { ...p, availability: 'unavailable', sourceBranch: undefined }
+          : p,
+      ),
+    )
+  }, [])
+
+  const onSelectBranch = useCallback((id, branchName) => {
+    setLineItems((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, sourceBranch: branchName } : p,
+      ),
+    )
+  }, [])
+
+  // ── Page-level actions ────────────────────────────────────────────────────
+
   const handlePaymentChange = useCallback((value) => {
     setPaymentMethod(value)
     if (value) setShowPaymentOptionalWarning(false)
@@ -257,7 +411,6 @@ export default function CounterSalesPage() {
       setPageState('pending_finance')
       return
     }
-    // POS / Card or Cash → immediate confirmation
     setPageState('confirmed')
   }, [paymentMethod])
 
@@ -275,7 +428,14 @@ export default function CounterSalesPage() {
     setPageState('idle')
   }, [])
 
-  const mainActionDisabled = !customer?.id || lineItems.length === 0
+  const handleNewTransaction = useCallback(() => navigate('/landing'), [navigate])
+  const handleMarkPaymentReceived = useCallback(
+    () => setPageState('payment_confirmed'),
+    [],
+  )
+
+  const mainActionDisabled =
+    !customer?.id || lineItems.length === 0 || hasUnresolvedLines
 
   const frozenPaymentLabel =
     paymentDropdownOptions.find((o) => o.value === paymentMethod)?.label ?? ''
@@ -292,10 +452,7 @@ export default function CounterSalesPage() {
     logoutAriaLabel: navbarLogoutAriaLabel,
   }
 
-  // ── Full-page confirmation screens ──────────────────────────────────────────
-
-  const handleNewTransaction = useCallback(() => navigate('/landing'), [navigate])
-  const handleMarkPaymentReceived = useCallback(() => setPageState('payment_confirmed'), [])
+  // ── Full-page confirmation screens ────────────────────────────────────────
 
   if (pageState === 'confirmed' || pageState === 'payment_confirmed') {
     return (
@@ -306,6 +463,7 @@ export default function CounterSalesPage() {
           erpDoc={activeSaleOrder.erpDocNumber}
           paymentLabel={frozenPaymentLabel}
           isPaymentConfirmed={pageState === 'payment_confirmed'}
+          lineItems={lineItems}
           labels={saleConfirmationLabels}
           onNewTransaction={handleNewTransaction}
         />
@@ -328,13 +486,12 @@ export default function CounterSalesPage() {
     )
   }
 
-  // ── Normal sale screen (idle + pending_override) ────────────────────────────
+  // ── Normal sale screen ─────────────────────────────────────────────────────
 
   return (
     <div className="flex h-screen min-w-desktop flex-col overflow-hidden bg-surface">
       <Navbar {...navbarProps} />
 
-      {/* Banners */}
       {pageState === 'pending_override' ? (
         <PendingBanner message={pendingOverrideBannerMessage} />
       ) : isCreditSaleBlocked ? (
@@ -343,7 +500,11 @@ export default function CounterSalesPage() {
 
       <CustomerBar
         customer={customer}
-        creditStatus={isCreditSaleBlocked || pageState === 'pending_override' ? 'blocked' : creditStatus}
+        creditStatus={
+          isCreditSaleBlocked || pageState === 'pending_override'
+            ? 'blocked'
+            : creditStatus
+        }
         subtitleLabels={customerBarSubtitleLabels}
         statusBadgeLabel={
           isCreditSaleBlocked || pageState === 'pending_override'
@@ -354,9 +515,11 @@ export default function CounterSalesPage() {
 
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {/* Copy-from-quotation banner */}
           {state?.quotationRef && (
-            <CopyFromBanner quotationRef={state.quotationRef} labels={copyFromBannerLabels} />
+            <CopyFromBanner
+              quotationRef={state.quotationRef}
+              labels={copyFromBannerLabels}
+            />
           )}
           <PartsTable
             parts={lineItems}
@@ -364,11 +527,15 @@ export default function CounterSalesPage() {
             discountCeilingWarningText={discountCeilingInlineWarning}
             columnLabels={partsTableColumnLabels}
             availabilityCopy={availabilityCopy}
+            branches={sourceBranches}
             formatEgp={formatEgpAmount}
             deleteLineAriaLabel={deleteLineAriaLabel}
             onQtyChange={onQtyChange}
             onDiscountUpdate={onDiscountUpdate}
             onRemoveLine={onRemoveLine}
+            onSetBackorder={onSetBackorder}
+            onCancelBackorder={onCancelBackorder}
+            onSelectBranch={onSelectBranch}
             getLineTotal={getLineTotal}
             addPartPlaceholder={addPartRowPlaceholder}
             readOnly={isPending}
@@ -377,6 +544,7 @@ export default function CounterSalesPage() {
         <OrderSummaryBar
           immediateTotal={immediateTotal}
           backorderTotal={backorderTotal}
+          unavailableTotal={unavailableTotal}
           subtotal={subtotal}
           vatAmount={vatAmount}
           grandTotal={grandTotal}
@@ -392,6 +560,7 @@ export default function CounterSalesPage() {
           needsDiscountOverride={anyLineExceedsCeiling && !isCreditSaleBlocked}
           onMainAction={handleMainAction}
           mainActionDisabled={mainActionDisabled}
+          hasUnresolvedLines={hasUnresolvedLines}
           pageState={pageState}
           onRequestOverride={handleRequestOverride}
           onCancelTransaction={handleCancelTransaction}

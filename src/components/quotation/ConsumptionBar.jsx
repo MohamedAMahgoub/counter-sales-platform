@@ -3,8 +3,9 @@
  * @param {number} props.qtyQuoted
  * @param {number} props.qtyConsumed
  * @param {object} props.copy  consumptionBarCopy from mockData
+ * @param {string|null} [props.backorderNote]  optional amber note shown below the bar
  */
-export default function ConsumptionBar({ qtyQuoted, qtyConsumed, copy }) {
+export default function ConsumptionBar({ qtyQuoted, qtyConsumed, copy, backorderNote = null }) {
   const isFullyConsumed = qtyConsumed >= qtyQuoted
   const pct =
     qtyQuoted > 0 ? Math.min(100, Math.round((qtyConsumed / qtyQuoted) * 100)) : 0
@@ -36,6 +37,9 @@ export default function ConsumptionBar({ qtyQuoted, qtyConsumed, copy }) {
           ({remaining} remaining)
         </span>
       </p>
+      {backorderNote && (
+        <p className="text-badge font-medium text-[#F39C12]">{backorderNote}</p>
+      )}
     </div>
   )
 }

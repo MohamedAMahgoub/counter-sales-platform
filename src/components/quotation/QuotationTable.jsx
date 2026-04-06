@@ -8,6 +8,7 @@ import QuotationLineItem from './QuotationLineItem'
  * @param {string} props.discountCeilingWarningText
  * @param {object} props.columnLabels
  * @param {object} props.consumptionCopy
+ * @param {object} props.availabilityCopy  quotationAvailabilityCopy from mockData
  * @param {(n: number) => string} props.formatEgp
  * @param {string} props.deleteLineAriaLabel
  * @param {(id: string, payload: { discount: number, discountValue: number }) => void} props.onDiscountUpdate
@@ -21,6 +22,7 @@ export default function QuotationTable({
   discountCeilingWarningText,
   columnLabels,
   consumptionCopy,
+  availabilityCopy,
   formatEgp,
   deleteLineAriaLabel,
   onDiscountUpdate,
@@ -28,11 +30,11 @@ export default function QuotationTable({
   getLineTotal,
   addPartPlaceholder,
 }) {
-  const colSpan = 9
+  const colSpan = 10
 
   return (
     <div className="w-full overflow-x-auto border-b border-border bg-surface-card">
-      <table className="w-full min-w-[1180px] border-collapse text-left">
+      <table className="w-full min-w-[1280px] border-collapse text-left">
         <thead>
           <tr className="border-b border-border bg-surface">
             <th className="px-4 py-3 text-label font-semibold text-text-secondary">
@@ -49,6 +51,9 @@ export default function QuotationTable({
             </th>
             <th className="px-4 py-3 text-label font-semibold text-text-secondary">
               {columnLabels.unitPrice}
+            </th>
+            <th className="px-4 py-3 text-label font-semibold text-text-secondary">
+              {columnLabels.availability}
             </th>
             <th className="px-4 py-3 text-label font-semibold text-text-secondary">
               {columnLabels.discountPercent}
@@ -72,6 +77,7 @@ export default function QuotationTable({
               discountCeiling={discountCeiling}
               discountCeilingWarningText={discountCeilingWarningText}
               consumptionCopy={consumptionCopy}
+              availabilityCopy={availabilityCopy}
               formatEgp={formatEgp}
               lineTotal={getLineTotal(line)}
               deleteAriaLabel={deleteLineAriaLabel}
